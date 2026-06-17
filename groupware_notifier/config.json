@@ -11,17 +11,20 @@
     "BB140533555033482",
     "BB140304938548009",
     "BB140306311362185",
-    "BB168050962738658"
+    "BB168050962738658",
+    "BB140306307605625"
   ],
   "board_names": {
     "BB140533555033482": "공지사항",
     "BB140304938548009": "경조사",
     "BB140306311362185": "인사발령",
-    "BB168050962738658": "NDS 수주정보"
+    "BB168050962738658": "NDS 수주정보",
+    "BB140306307605625": "교육세미나일정"
   },
   "board_url_overrides": {
     "BB140306311362185": "http://www.nsgportal.net/ekp/board/atcl.do?cmd=listAtcl&atclReq.brdId=BB140306311362185&atclReq.readType=&atclReq.atclNo=&grpId=&atclReq.listType=&fwd=Y&atclReq.searchPutupTarget=C",
-    "BB168050962738658": "http://www.nsgportal.net/ekp/board/atcl.do?cmd=listAtcl&atclReq.brdId=BB168050962738658&atclReq.readType=&atclReq.atclNo=&grpId=&atclReq.listType=&fwd=Y&atclReq.searchPutupTarget=C"
+    "BB168050962738658": "http://www.nsgportal.net/ekp/board/atcl.do?cmd=listAtcl&atclReq.brdId=BB168050962738658&atclReq.readType=&atclReq.atclNo=&grpId=&atclReq.listType=&fwd=Y&atclReq.searchPutupTarget=C",
+    "BB140306307605625": "http://www.nsgportal.net/ekp/board/atcl.do?cmd=listAtcl&atclReq.subKind=A&atclReq.brdId=BB140306307605625"
   },
   "post_selector": "tr",
   "post_id_pattern": "fnViewAtcl\\('(\\d+)'",
