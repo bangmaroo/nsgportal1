@@ -1,4 +1,5 @@
 secrets.json
+debug_*.py
 state.json
 logs/
 __pycache__/
