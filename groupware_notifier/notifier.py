@@ -30,9 +30,9 @@ class KakaoNotifier:
         self.secrets = secrets
         self.secrets_path = secrets_path
 
-    def send(self, title: str, body: str, url: str = '') -> None:
+    def send(self, title: str, body: str, url: str = '', header: str = '[그룹웨어 새 글]') -> None:
         """카카오톡으로 텍스트 메시지를 나에게 전송한다. 401 시 토큰 갱신 후 1회 재시도."""
-        payload = self._build_payload(title, body, url)
+        payload = self._build_payload(title, body, url, header)
 
         resp = self._post_message(payload)
         if resp.status_code == 401:
@@ -56,10 +56,10 @@ class KakaoNotifier:
             timeout=10,
         )
 
-    def _build_payload(self, title: str, body: str, url: str) -> dict:
+    def _build_payload(self, title: str, body: str, url: str, header: str) -> dict:
         template = {
             'object_type': 'text',
-            'text': f'[그룹웨어 새 글]\n{title}\n{body}'.strip(),
+            'text': f'{header}\n{title}\n{body}'.strip(),
             'link': {
                 'web_url': url,
                 'mobile_web_url': url,

@@ -1,0 +1,29 @@
+{
+  "groupware_url": "http://www.nsgportal.net/",
+  "entry_url": "http://www.nsgportal.net/ekp/ssoLogin.jsp",
+  "company_id": "CD",
+  "company_field": "cmpId",
+  "dining_url": "http://www.nsgportal.net/ekp/diningHall/diningHall.do?cmd=diningHallList&diningHall.diningHallCode=NONGSHIM&diningHall.diningHallName=",
+  "login_url": "https://sso.nsgportal.net:8888/siteminderagent/forms/login.fcc",
+  "ssl_verify": false,
+  "board_url_template": "http://www.nsgportal.net/ekp/board/atcl.do?cmd=listAtcl&atclReq.subKind=A&atclReq.searchPutupTarget=C&atclReq.brdId={board_id}",
+  "board_ids": [
+    "BB140533555033482",
+    "BB140304938548009",
+    "BB140306311362185",
+    "BB168050962738658"
+  ],
+  "board_names": {
+    "BB140533555033482": "공지사항",
+    "BB140304938548009": "경조사",
+    "BB140306311362185": "인사발령",
+    "BB168050962738658": "NDS 수주정보"
+  },
+  "board_url_overrides": {
+    "BB140306311362185": "http://www.nsgportal.net/ekp/board/atcl.do?cmd=listAtcl&atclReq.brdId=BB140306311362185&atclReq.readType=&atclReq.atclNo=&grpId=&atclReq.listType=&fwd=Y&atclReq.searchPutupTarget=C",
+    "BB168050962738658": "http://www.nsgportal.net/ekp/board/atcl.do?cmd=listAtcl&atclReq.brdId=BB168050962738658&atclReq.readType=&atclReq.atclNo=&grpId=&atclReq.listType=&fwd=Y&atclReq.searchPutupTarget=C"
+  },
+  "post_selector": "tr",
+  "post_id_pattern": "fnViewAtcl\\('(\\d+)'",
+  "post_title_selector": "a[href*='fnViewAtcl']"
+}

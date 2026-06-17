@@ -1,25 +1,29 @@
 """
-그룹웨어 새 게시물 감지 → 카카오톡 알림 메인 스크립트.
+그룹웨어 새 게시물 감지 및 식단 알림 → 카카오톡 알림 메인 스크립트.
 
 실행 방법:
-    python groupware_notifier/main.py
+    python groupware_notifier/main.py            # 새 게시물 확인
+    python groupware_notifier/main.py --meal     # 금일 식단 알림 (평일 오전 10시 예약)
 
 Windows Task Scheduler 등록 시:
-    프로그램: C:\\path\\to\\.venv\\Scripts\\python.exe   ← venv python.exe 경로 지정!
-    인수:     groupware_notifier\\main.py
-    시작 위치: C:\\path\\to\\nsgportal1
-
-    주의: 'python main.py' 대신 venv의 python.exe 전체 경로를 사용해야
-    requests / beautifulsoup4 등이 제대로 임포트됩니다.
+    프로그램: C:\\path\\to\\.venv\\Scripts\\python.exe
+    인수(새 글): groupware_notifier\\main.py
+    인수(식단):  groupware_notifier\\main.py --meal
+    시작 위치:   C:\\path\\to\\nsgportal1
 """
+import argparse
 import json
 import logging
 import os
 import sys
 import tempfile
 import time
+from datetime import date
 from logging.handlers import RotatingFileHandler
 from pathlib import Path
+
+# 프로젝트 루트를 sys.path에 추가 (python groupware_notifier/main.py 방식으로 실행 시 필요)
+sys.path.insert(0, str(Path(__file__).parent.parent))
 
 import psutil
 
@@ -37,6 +41,10 @@ LOG_DIR = BASE_DIR.parent / 'logs'
 # ── 로깅 설정 ──────────────────────────────────────────────────────────────────
 
 def setup_logging() -> None:
+    # Windows 콘솔에서 cp949 인코딩 에러 방지
+    if hasattr(sys.stdout, 'reconfigure'):
+        sys.stdout.reconfigure(encoding='utf-8', errors='replace')
+
     LOG_DIR.mkdir(exist_ok=True)
     file_handler = RotatingFileHandler(
         LOG_DIR / 'run.log',
@@ -44,12 +52,13 @@ def setup_logging() -> None:
         backupCount=2,
         encoding='utf-8',
     )
-    file_handler.setFormatter(
-        logging.Formatter('%(asctime)s %(levelname)s %(name)s: %(message)s')
-    )
+    fmt = logging.Formatter('%(asctime)s %(levelname)s %(name)s: %(message)s')
+    file_handler.setFormatter(fmt)
+    console_handler = logging.StreamHandler(sys.stdout)
+    console_handler.setFormatter(fmt)
     logging.basicConfig(
         level=logging.INFO,
-        handlers=[file_handler, logging.StreamHandler(sys.stdout)],
+        handlers=[file_handler, console_handler],
     )
 
 
@@ -140,14 +149,15 @@ def run() -> None:
             key=lambda p: p['id'],
         )
 
+        board_name = config.get('board_names', {}).get(board_id, board_id)
         for post in new_posts:
             try:
                 notifier.send(
                     title=post['title'],
-                    body=f'게시판: {board_id}',
+                    body=f'게시판: {board_name}',
                 )
                 any_new_posts = True
-                logger.info('[%s] 알림 전송: id=%d "%s"', board_id, post['id'], post['title'])
+                logger.info('[%s] 알림 전송: id=%d "%s"', board_name, post['id'], post['title'])
             except Exception as e:
                 logger.error('[%s] 알림 전송 실패: %s', board_id, e)
                 raise
@@ -168,10 +178,58 @@ def _load_json(path: Path, name: str) -> dict:
         return json.load(f)
 
 
+# ── 식단 알림 ─────────────────────────────────────────────────────────────────
+
+def send_meal() -> None:
+    """금일 식단을 카카오톡으로 전송한다."""
+    logger = logging.getLogger(__name__)
+    config = _load_json(CONFIG_PATH, 'config.json')
+    secrets = _load_json(SECRETS_PATH, 'secrets.json')
+
+    scraper = GroupwareScraper(config, secrets)
+    notifier = KakaoNotifier(secrets, SECRETS_PATH)
+
+    menu = scraper.get_today_menu()
+    if not menu or not menu.get('lunch'):
+        logger.info('오늘 중식 식단 정보가 없습니다.')
+        return
+
+    today = date.today()
+    day_names = ['월', '화', '수', '목', '금', '토', '일']
+    day_name = day_names[today.weekday()]
+    date_str = today.strftime(f'%m/%d({day_name})')
+
+    lines = [menu['lunch']]
+    if menu.get('lunch_kcal'):
+        lines.append(f'\n🔥 {menu["lunch_kcal"]}')
+    if menu.get('dinner'):
+        lines.append(f'\n🌙 석식\n{menu["dinner"]}')
+
+    notifier.send(
+        title=f'🍱 {date_str} 오늘의 식단',
+        body='\n'.join(lines),
+        header='[식단 알림]',
+    )
+    logger.info('식단 알림 전송 완료')
+
+
 # ── 진입점 ────────────────────────────────────────────────────────────────────
 
 def main() -> None:
+    parser = argparse.ArgumentParser(description='그룹웨어 알림')
+    parser.add_argument('--meal', action='store_true', help='금일 식단 알림 전송')
+    args = parser.parse_args()
+
     setup_logging()
+
+    if args.meal:
+        try:
+            send_meal()
+        except Exception as e:
+            logging.getLogger(__name__).error('식단 알림 오류: %s', e, exc_info=True)
+            sys.exit(1)
+        return
+
     if not acquire_lock():
         sys.exit(0)
     try:
