@@ -145,20 +145,27 @@ def run() -> None:
             continue
 
         max_id = max(p['id'] for p in posts)
-        last_seen = state['boards'].get(board_id, {}).get('last_seen_id', 0)
+        board_state = state['boards'].get(board_id, {})
+        last_seen = board_state.get('last_seen_id', 0)
+        seen_titles = board_state.get('seen_titles', {})
+
+        current_titles = {str(p['id']): p['title'] for p in posts}
 
         if is_first_run:
-            new_state['boards'][board_id] = {'last_seen_id': max_id}
+            new_state['boards'][board_id] = {
+                'last_seen_id': max_id,
+                'seen_titles': current_titles,
+            }
             logger.info('[%s] 기준점 설정: last_seen_id=%d', board_id, max_id)
             continue
+
+        board_name = config.get('board_names', {}).get(board_id, board_id)
+        board_emoji = board_emojis.get(board_id, '📋')
 
         new_posts = sorted(
             [p for p in posts if p['id'] > last_seen],
             key=lambda p: p['id'],
         )
-
-        board_name = config.get('board_names', {}).get(board_id, board_id)
-        board_emoji = board_emojis.get(board_id, '📋')
         for post in new_posts:
             try:
                 notifier.send(
@@ -167,12 +174,32 @@ def run() -> None:
                     header='📬 새 게시물',
                 )
                 any_new_posts = True
-                logger.info('[%s] 알림 전송: id=%d "%s"', board_name, post['id'], post['title'])
+                logger.info('[%s] 새 게시물 알림: id=%d "%s"', board_name, post['id'], post['title'])
             except Exception as e:
                 logger.error('[%s] 알림 전송 실패: %s', board_id, e)
                 raise
 
-        new_state['boards'][board_id] = {'last_seen_id': max_id}
+        for post in posts:
+            if post['id'] > last_seen:
+                continue
+            old_title = seen_titles.get(str(post['id']))
+            if old_title is not None and old_title != post['title']:
+                try:
+                    notifier.send(
+                        title=post['title'],
+                        body=f'{board_emoji} {board_name}\n이전 제목: {old_title}',
+                        header='✏️ 게시물 수정',
+                    )
+                    any_new_posts = True
+                    logger.info('[%s] 제목 변경 알림: id=%d "%s" → "%s"', board_name, post['id'], old_title, post['title'])
+                except Exception as e:
+                    logger.error('[%s] 알림 전송 실패: %s', board_id, e)
+                    raise
+
+        new_state['boards'][board_id] = {
+            'last_seen_id': max_id,
+            'seen_titles': current_titles,
+        }
 
     save_state(new_state)
     if not any_new_posts and not is_first_run:
