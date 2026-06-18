@@ -27,7 +27,7 @@ sys.path.insert(0, str(Path(__file__).parent.parent))
 
 import psutil
 
-from groupware_notifier.notifier import KakaoNotifier, _write_json_atomic
+from groupware_notifier.notifier import build_notifier, _write_json_atomic
 from groupware_notifier.scraper import GroupwareScraper
 
 BASE_DIR = Path(__file__).parent
@@ -120,7 +120,7 @@ def run() -> None:
     secrets = _load_json(SECRETS_PATH, 'secrets.json')
 
     scraper = GroupwareScraper(config, secrets)
-    notifier = KakaoNotifier(secrets, SECRETS_PATH)
+    notifier = build_notifier(secrets, SECRETS_PATH)
 
     state = load_state()
     is_first_run = not state
@@ -187,7 +187,7 @@ def send_meal() -> None:
     secrets = _load_json(SECRETS_PATH, 'secrets.json')
 
     scraper = GroupwareScraper(config, secrets)
-    notifier = KakaoNotifier(secrets, SECRETS_PATH)
+    notifier = build_notifier(secrets, SECRETS_PATH)
 
     menu = scraper.get_today_menu()
     if not menu or not menu.get('lunch'):

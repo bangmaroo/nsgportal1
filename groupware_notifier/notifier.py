@@ -1,14 +1,15 @@
 """
-카카오톡 '나에게 보내기' 알림 전송.
+카카오톡·디스코드 알림 전송.
+
+KakaoNotifier   - 카카오톡 '나에게 보내기' (OAuth, 토큰 자동 갱신)
+DiscordNotifier - 디스코드 웹훅 (secrets.json의 discord_webhook_url)
+MultiNotifier   - 위 두 알림을 한 번에 전송; 개별 실패는 로그만 남기고 계속 진행
 
 Kakao OAuth 토큰 갱신 흐름:
   POST /v2/api/talk/memo/default/send → 401
   → POST /oauth/token (refresh_token grant)
   → 새 access_token + (새 refresh_token 있으면) 저장
   → 재시도
-
-주의: Kakao는 갱신 응답에 새 refresh_token을 포함할 수 있음.
-반드시 새 refresh_token도 secrets.json에 저장해야 60일 이후에도 갱신 가능.
 """
 import json
 import logging
@@ -95,6 +96,71 @@ class KakaoNotifier:
 
         _write_json_atomic(self.secrets, self.secrets_path)
         logger.info('Kakao tokens refreshed and saved.')
+
+
+class DiscordNotifier:
+    # 헤더별 embed 색상
+    _COLORS = {
+        '[그룹웨어 새 글]': 0x5865F2,   # 디스코드 블루
+        '[식단 알림]':      0xF6A623,    # 오렌지
+    }
+    _DEFAULT_COLOR = 0x5865F2
+
+    def __init__(self, webhook_url: str):
+        self._url = webhook_url
+
+    def send(self, title: str, body: str, url: str = '', header: str = '[그룹웨어 새 글]') -> None:
+        color = self._COLORS.get(header, self._DEFAULT_COLOR)
+        embed: dict = {
+            'author': {'name': header},
+            'title': title,
+            'description': body,
+            'color': color,
+        }
+        if url:
+            embed['url'] = url
+
+        payload = {
+            'username': '그룹웨어 알림',
+            'embeds': [embed],
+        }
+        resp = requests.post(self._url, json=payload, timeout=10)
+        if resp.status_code not in (200, 204):
+            raise RuntimeError(
+                f'Discord webhook 전송 실패 ({resp.status_code}): {resp.text}'
+            )
+        logger.info('Discord notification sent: %s', title)
+
+
+class MultiNotifier:
+    """등록된 모든 알림 수단으로 메시지를 전송한다. 개별 실패는 로그만 남긴다."""
+
+    def __init__(self, notifiers: list):
+        self._notifiers = notifiers
+
+    def send(self, title: str, body: str, url: str = '', header: str = '[그룹웨어 새 글]') -> None:
+        for notifier in self._notifiers:
+            try:
+                notifier.send(title=title, body=body, url=url, header=header)
+            except Exception as e:
+                logger.error('%s 전송 실패: %s', type(notifier).__name__, e)
+
+
+def build_notifier(secrets: dict, secrets_path: Path) -> MultiNotifier:
+    """secrets.json에 설정된 알림 수단을 활성화해 MultiNotifier로 반환한다."""
+    notifiers = []
+
+    if secrets.get('access_token'):
+        notifiers.append(KakaoNotifier(secrets, secrets_path))
+
+    webhook_url = secrets.get('discord_webhook_url', '').strip()
+    if webhook_url:
+        notifiers.append(DiscordNotifier(webhook_url))
+
+    if not notifiers:
+        logger.warning('활성화된 알림 수단이 없습니다. secrets.json을 확인하세요.')
+
+    return MultiNotifier(notifiers)
 
 
 def _write_json_atomic(data: dict, path: Path) -> None:
