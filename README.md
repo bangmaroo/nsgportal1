@@ -53,7 +53,7 @@ pip install requests beautifulsoup4 psutil
 
 ```json
 {
-  "groupware_username": "사번 (예: 0815138)",
+  "groupware_username": "사번 (예: xxxxxxx)",
   "groupware_password": "그룹웨어 비밀번호",
   "kakao_rest_api_key": "",
   "kakao_client_secret": "",
