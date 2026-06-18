@@ -31,7 +31,7 @@ class KakaoNotifier:
         self.secrets = secrets
         self.secrets_path = secrets_path
 
-    def send(self, title: str, body: str, url: str = '', header: str = '[그룹웨어 새 글]') -> None:
+    def send(self, title: str, body: str, url: str = '', header: str = '📬 새 게시물') -> None:
         """카카오톡으로 텍스트 메시지를 나에게 전송한다. 401 시 토큰 갱신 후 1회 재시도."""
         payload = self._build_payload(title, body, url, header)
 
@@ -58,9 +58,15 @@ class KakaoNotifier:
         )
 
     def _build_payload(self, title: str, body: str, url: str, header: str) -> dict:
+        divider = '─' * 20
+        parts = [header, divider, title]
+        if body:
+            parts.append(body)
+        if url:
+            parts += [divider, f'🔗 {url}']
         template = {
             'object_type': 'text',
-            'text': f'{header}\n{title}\n{body}'.strip(),
+            'text': '\n'.join(parts),
             'link': {
                 'web_url': url,
                 'mobile_web_url': url,
@@ -101,15 +107,15 @@ class KakaoNotifier:
 class DiscordNotifier:
     # 헤더별 embed 색상
     _COLORS = {
-        '[그룹웨어 새 글]': 0x5865F2,   # 디스코드 블루
-        '[식단 알림]':      0xF6A623,    # 오렌지
+        '📬 새 게시물': 0x5865F2,   # 디스코드 블루
+        '🍽️ 식단 알림':  0xF6A623,   # 오렌지
     }
     _DEFAULT_COLOR = 0x5865F2
 
     def __init__(self, webhook_url: str):
         self._url = webhook_url
 
-    def send(self, title: str, body: str, url: str = '', header: str = '[그룹웨어 새 글]') -> None:
+    def send(self, title: str, body: str, url: str = '', header: str = '📬 새 게시물') -> None:
         color = self._COLORS.get(header, self._DEFAULT_COLOR)
         embed: dict = {
             'author': {'name': header},
@@ -138,7 +144,7 @@ class MultiNotifier:
     def __init__(self, notifiers: list):
         self._notifiers = notifiers
 
-    def send(self, title: str, body: str, url: str = '', header: str = '[그룹웨어 새 글]') -> None:
+    def send(self, title: str, body: str, url: str = '', header: str = '📬 새 게시물') -> None:
         for notifier in self._notifiers:
             try:
                 notifier.send(title=title, body=body, url=url, header=header)

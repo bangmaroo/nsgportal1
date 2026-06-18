@@ -127,6 +127,14 @@ def run() -> None:
     if is_first_run:
         logger.info('첫 실행 — 현재 게시물을 기준점으로 설정합니다. 이번 실행에서는 알림이 없습니다.')
 
+    board_emojis = {
+        'BB140533555033482': '📌',  # 공지사항
+        'BB140304938548009': '🎊',  # 경조사
+        'BB140306311362185': '👥',  # 인사발령
+        'BB168050962738658': '💼',  # NDS 수주정보
+        'BB140306307605625': '📚',  # 교육세미나일정
+    }
+
     state.setdefault('boards', {})
     new_state = {'boards': dict(state['boards'])}
     any_new_posts = False
@@ -150,11 +158,13 @@ def run() -> None:
         )
 
         board_name = config.get('board_names', {}).get(board_id, board_id)
+        board_emoji = board_emojis.get(board_id, '📋')
         for post in new_posts:
             try:
                 notifier.send(
                     title=post['title'],
-                    body=f'게시판: {board_name}',
+                    body=f'{board_emoji} {board_name}',
+                    header='📬 새 게시물',
                 )
                 any_new_posts = True
                 logger.info('[%s] 알림 전송: id=%d "%s"', board_name, post['id'], post['title'])
@@ -199,16 +209,16 @@ def send_meal() -> None:
     day_name = day_names[today.weekday()]
     date_str = today.strftime(f'%m/%d({day_name})')
 
-    lines = [menu['lunch']]
+    lines = [f'☀️ 중식\n{menu["lunch"]}']
     if menu.get('lunch_kcal'):
-        lines.append(f'\n🔥 {menu["lunch_kcal"]}')
+        lines.append(f'🔥 {menu["lunch_kcal"]}')
     if menu.get('dinner'):
         lines.append(f'\n🌙 석식\n{menu["dinner"]}')
 
     notifier.send(
         title=f'🍱 {date_str} 오늘의 식단',
         body='\n'.join(lines),
-        header='[식단 알림]',
+        header='🍽️ 식단 알림',
     )
     logger.info('식단 알림 전송 완료')
 
