@@ -1,8 +1,0 @@
-{
-  "groupware_url": "http://www.nsgportal.net/",
-  "login_url": "http://www.nsgportal.net/ekp/ssoLogin.jsp",
-  "board_ids": ["notice"],
-  "post_selector": "tr[data-id]",
-  "post_id_attr": "data-id",
-  "post_title_selector": "td.title a"
-}
