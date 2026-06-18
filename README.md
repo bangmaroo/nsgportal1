@@ -140,6 +140,47 @@ python groupware_notifier/main.py --meal
 
 > `python.exe` 경로 확인: `python -c "import sys; print(sys.executable)"`
 
+## Linux Cron 등록
+
+### python 경로 확인
+
+```bash
+which python3
+# 예: /usr/bin/python3
+```
+
+### crontab 편집
+
+```bash
+crontab -e
+```
+
+아래 두 줄을 추가한다. 경로는 실제 환경에 맞게 수정한다.
+
+```cron
+# 그룹웨어 새 게시물 알림 — 평일 08:00~20:00, 5분마다
+*/5 8-20 * * 1-5 cd /home/user/nsgportal1 && /usr/bin/python3 groupware_notifier/main.py >> logs/cron.log 2>&1
+
+# 금일 식단 알림 — 평일 오전 10:00
+0 10 * * 1-5 cd /home/user/nsgportal1 && /usr/bin/python3 groupware_notifier/main.py --meal >> logs/cron.log 2>&1
+```
+
+### 크론 형식 설명
+
+```
+분  시  일  월  요일(0=일,1=월…5=금)
+*/5 8-20 * * 1-5   → 평일 8~20시 사이 5분마다
+0   10   * * 1-5   → 평일 10시 정각
+```
+
+### 등록 확인
+
+```bash
+crontab -l
+```
+
+> `logs/` 디렉터리가 없으면 미리 생성한다: `mkdir -p /home/user/nsgportal1/logs`
+
 ## 파일 구조
 
 ```
