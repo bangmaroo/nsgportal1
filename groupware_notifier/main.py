@@ -120,7 +120,7 @@ def run() -> None:
     secrets = _load_json(SECRETS_PATH, 'secrets.json')
 
     scraper = GroupwareScraper(config, secrets)
-    notifier = build_notifier(secrets, SECRETS_PATH)
+    notifier = build_notifier(secrets, SECRETS_PATH, config)
 
     state = load_state()
     is_first_run = not state
@@ -197,7 +197,7 @@ def send_meal() -> None:
     secrets = _load_json(SECRETS_PATH, 'secrets.json')
 
     scraper = GroupwareScraper(config, secrets)
-    notifier = build_notifier(secrets, SECRETS_PATH)
+    notifier = build_notifier(secrets, SECRETS_PATH, config)
 
     menu = scraper.get_today_menu()
     if not menu or not menu.get('lunch'):

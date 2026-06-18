@@ -1,4 +1,5 @@
 {
+  "notifiers": ["discord"],
   "groupware_url": "http://www.nsgportal.net/",
   "entry_url": "http://www.nsgportal.net/ekp/ssoLogin.jsp",
   "company_id": "CD",

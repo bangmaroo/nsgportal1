@@ -152,19 +152,29 @@ class MultiNotifier:
                 logger.error('%s 전송 실패: %s', type(notifier).__name__, e)
 
 
-def build_notifier(secrets: dict, secrets_path: Path) -> MultiNotifier:
-    """secrets.json에 설정된 알림 수단을 활성화해 MultiNotifier로 반환한다."""
+def build_notifier(secrets: dict, secrets_path: Path, config: dict | None = None) -> MultiNotifier:
+    """config의 notifiers 목록에 따라 알림 수단을 활성화해 MultiNotifier로 반환한다.
+
+    config.json 예시:
+        "notifiers": ["kakao", "discord"]   ← 둘 다
+        "notifiers": ["discord"]            ← 디스코드만
+        "notifiers": ["kakao"]              ← 카카오톡만
+    notifiers 키가 없으면 secrets.json에 값이 있는 수단을 모두 활성화한다.
+    """
+    enabled: list[str] | None = (config or {}).get('notifiers')
     notifiers = []
 
-    if secrets.get('access_token'):
-        notifiers.append(KakaoNotifier(secrets, secrets_path))
+    if enabled is None or 'kakao' in enabled:
+        if secrets.get('access_token'):
+            notifiers.append(KakaoNotifier(secrets, secrets_path))
 
-    webhook_url = secrets.get('discord_webhook_url', '').strip()
-    if webhook_url:
-        notifiers.append(DiscordNotifier(webhook_url))
+    if enabled is None or 'discord' in enabled:
+        webhook_url = secrets.get('discord_webhook_url', '').strip()
+        if webhook_url:
+            notifiers.append(DiscordNotifier(webhook_url))
 
     if not notifiers:
-        logger.warning('활성화된 알림 수단이 없습니다. secrets.json을 확인하세요.')
+        logger.warning('활성화된 알림 수단이 없습니다. config.json의 notifiers와 secrets.json을 확인하세요.')
 
     return MultiNotifier(notifiers)
 
