@@ -100,7 +100,7 @@ def load_state() -> dict:
     if not STATE_PATH.exists():
         return {}
     try:
-        with open(STATE_PATH, encoding='utf-8') as f:
+        with open(STATE_PATH, encoding='utf-8-sig') as f:
             return json.load(f)
     except (json.JSONDecodeError, OSError) as e:
         logging.getLogger(__name__).error('state.json 로드 실패: %s. 빈 상태로 초기화합니다.', e)
