@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 """main.py 단위 테스트 — state 관리, lockfile, 첫 실행, 정상/비정상 흐름."""
 import json
 import os
@@ -112,7 +113,7 @@ def test_first_run_no_alerts(tmp_path):
         patch('groupware_notifier.main.STATE_PATH', state_path),
         patch('groupware_notifier.main._load_json', side_effect=lambda p, n: config if 'config' in str(p) else secrets),
         patch('groupware_notifier.main.GroupwareScraper', return_value=mock_scraper),
-        patch('groupware_notifier.main.KakaoNotifier', return_value=mock_notifier),
+        patch('groupware_notifier.main.build_notifier', return_value=mock_notifier),
     ):
         run()
 
@@ -120,7 +121,7 @@ def test_first_run_no_alerts(tmp_path):
     mock_notifier.send.assert_not_called()
 
     # state.json 생성 확인
-    state = json.loads(state_path.read_text())
+    state = json.loads(state_path.read_text(encoding='utf-8'))
     assert state['boards']['notice']['last_seen_id'] == 101
 
 
@@ -158,7 +159,7 @@ def test_new_posts_sends_notifications(tmp_path):
         patch('groupware_notifier.main.STATE_PATH', state_path),
         patch('groupware_notifier.main._load_json', side_effect=lambda p, n: config if 'config' in str(p) else secrets),
         patch('groupware_notifier.main.GroupwareScraper', return_value=mock_scraper),
-        patch('groupware_notifier.main.KakaoNotifier', return_value=mock_notifier),
+        patch('groupware_notifier.main.build_notifier', return_value=mock_notifier),
     ):
         run()
 
@@ -169,7 +170,7 @@ def test_new_posts_sends_notifications(tmp_path):
     assert '새 공지2' in calls
 
     # state 업데이트 확인
-    state = json.loads(state_path.read_text())
+    state = json.loads(state_path.read_text(encoding='utf-8'))
     assert state['boards']['notice']['last_seen_id'] == 102
 
 
@@ -201,8 +202,73 @@ def test_no_new_posts_no_notification(tmp_path):
         patch('groupware_notifier.main.STATE_PATH', state_path),
         patch('groupware_notifier.main._load_json', side_effect=lambda p, n: config if 'config' in str(p) else secrets),
         patch('groupware_notifier.main.GroupwareScraper', return_value=mock_scraper),
-        patch('groupware_notifier.main.KakaoNotifier', return_value=mock_notifier),
+        patch('groupware_notifier.main.build_notifier', return_value=mock_notifier),
     ):
         run()
 
     mock_notifier.send.assert_not_called()
+
+
+# ── T4: 경조사 이모티콘 분기 테스트 ─────────────────────────────────────────
+
+def test_condolence_and_congratulation_emojis(tmp_path):
+    state_path = tmp_path / 'state.json'
+    # 이전 상태: last_seen_id = 100
+    state_path.write_text(json.dumps({'boards': {'BB140304938548009': {'last_seen_id': 100}}}))
+
+    config = {
+        'groupware_url': 'https://gw.example.com',
+        'login_url': 'https://gw.example.com/login',
+        'board_ids': ['BB140304938548009'],  # 경조사 게시판 ID
+        'post_selector': 'tr[data-id]',
+        'post_id_attr': 'data-id',
+        'post_title_selector': 'td.title a',
+        'board_names': {'BB140304938548009': '경조사'},
+    }
+    secrets = {
+        'groupware_username': 'u', 'groupware_password': 'p',
+        'kakao_rest_api_key': 'key', 'kakao_client_secret': '',
+        'access_token': 'token', 'refresh_token': 'refresh',
+        'expires_at': int(time.time()) + 3600,
+    }
+
+    mock_scraper = MagicMock()
+    mock_scraper.get_posts.return_value = [
+        {'id': 103, 'title': '회원 결혼 알림'},      # 기쁜 일 -> 🎉
+        {'id': 102, 'title': 'OOO 부친 부고'},      # 슬픈 일 -> 🕯️
+        {'id': 101, 'title': '경조사 알림'},        # 기타 -> 🎊
+        {'id': 100, 'title': '기존 글'},
+    ]
+    mock_notifier = MagicMock()
+
+    with (
+        patch('groupware_notifier.main.STATE_PATH', state_path),
+        patch('groupware_notifier.main._load_json', side_effect=lambda p, n: config if 'config' in str(p) else secrets),
+        patch('groupware_notifier.main.GroupwareScraper', return_value=mock_scraper),
+        patch('groupware_notifier.main.build_notifier', return_value=mock_notifier),
+    ):
+        run()
+
+    # 3개의 새 글에 대해 알림 발송 확인
+    assert mock_notifier.send.call_count == 3
+    
+    # call_args_list에서 body 인자를 확인하여 적절한 이모티콘이 적용되었는지 확인
+    # body 포맷: f'{current_emoji} {board_name}'
+    calls = mock_notifier.send.call_args_list
+    
+    # id 101 ('경조사 알림' -> 기본값 '🎊')
+    # id 102 ('OOO 부친 부고' -> 슬픈 일 '🕯️')
+    # id 103 ('회원 결혼 알림' -> 기쁜 일 '🎉')
+    # main.py에서 정렬하여 호출하므로 호출 순서는 101, 102, 103 순서
+    
+    # 101번 글
+    assert calls[0].kwargs['title'] == '경조사 알림'
+    assert '🎊' in calls[0].kwargs['body']
+    
+    # 102번 글
+    assert calls[1].kwargs['title'] == 'OOO 부친 부고'
+    assert '🕯️' in calls[1].kwargs['body']
+    
+    # 103번 글
+    assert calls[2].kwargs['title'] == '회원 결혼 알림'
+    assert '🎉' in calls[2].kwargs['body']

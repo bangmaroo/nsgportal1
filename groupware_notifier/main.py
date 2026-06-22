@@ -112,6 +112,22 @@ def save_state(state: dict) -> None:
     _write_json_atomic(state, STATE_PATH)
 
 
+def _get_congratulatory_or_condolence_emoji(title: str) -> str:
+    """경조사 제목의 키워드를 분석하여 기쁜 일(🎉)과 슬픈 일(🕯️)을 구분하고 이모티콘을 반환한다."""
+    condolence_keywords = ['부고', '별세', '소천', '영면', '장례', '상주', '득상', '조의']
+    congratulatory_keywords = ['결혼', '화혼', '청첩', '득남', '득녀', '출산', '축하', '돌잔치', '회갑', '고희']
+
+    for kw in condolence_keywords:
+        if kw in title:
+            return '🕯️'
+
+    for kw in congratulatory_keywords:
+        if kw in title:
+            return '🎉'
+
+    return '🎊'
+
+
 # ── 메인 로직 ─────────────────────────────────────────────────────────────────
 
 def run() -> None:
@@ -167,10 +183,13 @@ def run() -> None:
             key=lambda p: p['id'],
         )
         for post in new_posts:
+            current_emoji = board_emoji
+            if board_id == 'BB140304938548009':
+                current_emoji = _get_congratulatory_or_condolence_emoji(post['title'])
             try:
                 notifier.send(
                     title=post['title'],
-                    body=f'{board_emoji} {board_name}',
+                    body=f'{current_emoji} {board_name}',
                     header='📬 새 게시물',
                 )
                 any_new_posts = True
@@ -184,10 +203,13 @@ def run() -> None:
                 continue
             old_title = seen_titles.get(str(post['id']))
             if old_title is not None and old_title != post['title']:
+                current_emoji = board_emoji
+                if board_id == 'BB140304938548009':
+                    current_emoji = _get_congratulatory_or_condolence_emoji(post['title'])
                 try:
                     notifier.send(
                         title=post['title'],
-                        body=f'{board_emoji} {board_name}\n이전 제목: {old_title}',
+                        body=f'{current_emoji} {board_name}\n이전 제목: {old_title}',
                         header='✏️ 게시물 수정',
                     )
                     any_new_posts = True
