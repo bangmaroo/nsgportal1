@@ -1,0 +1,917 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>그룹웨어 알림봇 소개</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700;900&display=swap');
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: 'Noto Sans KR', 'Apple SD Gothic Neo', sans-serif;
+    background: #f0f2f5;
+    display: flex;
+    justify-content: center;
+    padding: 40px 20px;
+  }
+
+  .card {
+    width: 860px;
+    background: #fff;
+    border-radius: 24px;
+    overflow: hidden;
+    box-shadow: 0 8px 40px rgba(0,0,0,0.10);
+  }
+
+  /* ── 헤더 ── */
+  .header {
+    background: linear-gradient(135deg, #1a1a2e 0%, #16213e 60%, #0f3460 100%);
+    color: #fff;
+    padding: 52px 56px 44px;
+    position: relative;
+    overflow: hidden;
+  }
+  .header::before {
+    content: '';
+    position: absolute;
+    right: -60px; top: -60px;
+    width: 320px; height: 320px;
+    border-radius: 50%;
+    background: rgba(255,255,255,0.04);
+  }
+  .header::after {
+    content: '';
+    position: absolute;
+    right: 60px; bottom: -80px;
+    width: 200px; height: 200px;
+    border-radius: 50%;
+    background: rgba(255,255,255,0.04);
+  }
+  .header-badge {
+    display: inline-block;
+    background: rgba(88,101,242,0.35);
+    border: 1px solid rgba(88,101,242,0.6);
+    color: #a5b4fc;
+    font-size: 12px;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    padding: 5px 14px;
+    border-radius: 100px;
+    margin-bottom: 18px;
+  }
+  .header h1 {
+    font-size: 38px;
+    font-weight: 900;
+    line-height: 1.2;
+    margin-bottom: 12px;
+  }
+  .header h1 span { color: #818cf8; }
+  .header p {
+    font-size: 16px;
+    color: rgba(255,255,255,0.65);
+    line-height: 1.6;
+    max-width: 520px;
+  }
+  .header-icon {
+    position: absolute;
+    right: 56px; top: 50%;
+    transform: translateY(-50%);
+    font-size: 96px;
+    opacity: 0.18;
+  }
+
+  /* ── 섹션 공통 ── */
+  .section { padding: 44px 56px; }
+  .section + .section { border-top: 1px solid #f1f3f5; }
+  .section-label {
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.12em;
+    color: #94a3b8;
+    text-transform: uppercase;
+    margin-bottom: 8px;
+  }
+  .section-title {
+    font-size: 22px;
+    font-weight: 800;
+    color: #1e293b;
+    margin-bottom: 24px;
+  }
+
+  /* ── 제작 배경 ── */
+  .bg-section { background: #fafbff; }
+  .bg-quote {
+    background: #fff;
+    border-left: 4px solid #6366f1;
+    border-radius: 0 12px 12px 0;
+    padding: 20px 24px;
+    font-size: 15px;
+    color: #334155;
+    line-height: 1.75;
+    box-shadow: 0 2px 12px rgba(99,102,241,0.07);
+  }
+  .bg-quote strong { color: #4f46e5; }
+
+  /* ── 동작 방식 ── */
+  .flow {
+    display: flex;
+    align-items: center;
+    gap: 0;
+    flex-wrap: wrap;
+    row-gap: 12px;
+  }
+  .flow-step {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+    min-width: 110px;
+  }
+  .flow-icon-wrap {
+    width: 56px; height: 56px;
+    border-radius: 16px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 24px;
+  }
+  .flow-step p {
+    font-size: 12px;
+    font-weight: 600;
+    color: #475569;
+    text-align: center;
+    line-height: 1.4;
+  }
+  .flow-arrow {
+    font-size: 20px;
+    color: #cbd5e1;
+    padding: 0 4px;
+    margin-bottom: 28px;
+  }
+  .c-blue   { background: #eff6ff; }
+  .c-indigo { background: #eef2ff; }
+  .c-purple { background: #f5f3ff; }
+  .c-green  { background: #f0fdf4; }
+  .c-orange { background: #fff7ed; }
+
+  .extra-notes {
+    margin-top: 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+  .heartbeat-note, .meal-note {
+    border-radius: 12px;
+    padding: 14px 20px;
+    font-size: 13.5px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+  .heartbeat-note {
+    background: #f0fdf4;
+    border: 1px solid #bbf7d0;
+    color: #166534;
+  }
+  .meal-note {
+    background: #fff7ed;
+    border: 1px solid #fed7aa;
+    color: #9a3412;
+  }
+  .heartbeat-note span.hb-icon,
+  .meal-note span.hb-icon { font-size: 20px; }
+
+  /* ── 모니터링 게시판 ── */
+  .boards {
+    display: grid;
+    grid-template-columns: repeat(5, 1fr);
+    gap: 12px;
+  }
+  .board-item {
+    background: #f8fafc;
+    border: 1px solid #e2e8f0;
+    border-radius: 14px;
+    padding: 16px 10px;
+    text-align: center;
+  }
+  .board-item .emoji { font-size: 28px; margin-bottom: 8px; }
+  .board-item p {
+    font-size: 12px;
+    font-weight: 700;
+    color: #334155;
+    line-height: 1.4;
+  }
+
+  /* ── 알림 채널 진화 ── */
+  .notif-section { background: #fafbff; }
+  .notif-timeline {
+    display: flex;
+    gap: 0;
+    align-items: stretch;
+  }
+  .notif-card {
+    flex: 1;
+    border-radius: 16px;
+    padding: 24px 22px;
+    position: relative;
+  }
+  .notif-card.kakao {
+    background: #fffbeb;
+    border: 1.5px solid #fde68a;
+    opacity: 0.85;
+  }
+  .notif-card.discord {
+    background: #eef2ff;
+    border: 1.5px solid #a5b4fc;
+  }
+  .notif-step-badge {
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    padding: 3px 10px;
+    border-radius: 100px;
+    display: inline-block;
+    margin-bottom: 12px;
+  }
+  .kakao .notif-step-badge  { background: #fef3c7; color: #92400e; }
+  .discord .notif-step-badge { background: #e0e7ff; color: #3730a3; }
+  .notif-card .notif-icon { font-size: 36px; margin-bottom: 10px; }
+  .notif-card h3 { font-size: 17px; font-weight: 800; margin-bottom: 8px; }
+  .kakao h3 { color: #78350f; }
+  .discord h3 { color: #3730a3; }
+  .notif-card p { font-size: 13px; line-height: 1.65; }
+  .kakao p { color: #92400e; }
+  .discord p { color: #4338ca; }
+  .notif-problem {
+    margin-top: 10px;
+    font-size: 12px;
+    background: #fef9c3;
+    border: 1px solid #fde047;
+    border-radius: 8px;
+    padding: 8px 12px;
+    color: #713f12;
+    font-weight: 500;
+  }
+  .notif-solution {
+    margin-top: 10px;
+    font-size: 12px;
+    background: #e0e7ff;
+    border: 1px solid #818cf8;
+    border-radius: 8px;
+    padding: 8px 12px;
+    color: #3730a3;
+    font-weight: 600;
+  }
+  .notif-arrow {
+    display: flex;
+    align-items: center;
+    padding: 0 16px;
+    flex-direction: column;
+    justify-content: center;
+    gap: 4px;
+    color: #94a3b8;
+  }
+  .notif-arrow .arr { font-size: 28px; }
+  .notif-arrow .arr-label { font-size: 10px; font-weight: 600; letter-spacing: 0.06em; color: #94a3b8; white-space: nowrap; }
+
+  .channel-criteria {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    background: #fff;
+    border: 1px solid #e2e8f0;
+    border-radius: 12px;
+    padding: 13px 18px;
+    margin-bottom: 20px;
+    font-size: 13px;
+    color: #475569;
+  }
+  .channel-criteria .crit-icon { font-size: 18px; flex-shrink: 0; }
+  .channel-criteria strong { color: #1e293b; }
+
+  .candidates {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 10px;
+    margin-bottom: 20px;
+  }
+  .candidate {
+    border-radius: 12px;
+    padding: 14px 16px;
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+  }
+  .candidate.selected   { background: #f0fdf4; border: 1.5px solid #86efac; }
+  .candidate.rejected   { background: #fef2f2; border: 1.5px solid #fca5a5; }
+  .candidate.deprecated { background: #fffbeb; border: 1.5px solid #fde68a; opacity: 0.8; }
+  .cand-icon { font-size: 22px; flex-shrink: 0; }
+  .cand-body { flex: 1; }
+  .cand-name { font-size: 13px; font-weight: 800; margin-bottom: 3px; }
+  .selected   .cand-name { color: #166534; }
+  .rejected   .cand-name { color: #991b1b; }
+  .deprecated .cand-name { color: #92400e; }
+  .cand-reason { font-size: 11.5px; line-height: 1.5; }
+  .selected   .cand-reason { color: #15803d; }
+  .rejected   .cand-reason { color: #b91c1c; }
+  .deprecated .cand-reason { color: #b45309; }
+  .cand-badge {
+    font-size: 10px; font-weight: 700; padding: 2px 8px;
+    border-radius: 100px; white-space: nowrap; margin-top: 6px;
+    display: inline-block;
+  }
+  .selected   .cand-badge { background: #dcfce7; color: #166534; }
+  .rejected   .cand-badge { background: #fee2e2; color: #991b1b; }
+  .deprecated .cand-badge { background: #fef3c7; color: #92400e; }
+
+  /* ── 개발 하네스 ── */
+  .harness-section { background: #f8faff; }
+  .harness-intro {
+    font-size: 14px;
+    color: #475569;
+    line-height: 1.7;
+    margin-bottom: 28px;
+  }
+  .harness-intro strong { color: #4f46e5; }
+  .agents {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 16px;
+    margin-bottom: 24px;
+  }
+  .agent-card {
+    border-radius: 16px;
+    padding: 22px 20px;
+    position: relative;
+  }
+  .agent-card.analyst  { background: #eff6ff; border: 1.5px solid #bfdbfe; }
+  .agent-card.engineer { background: #f5f3ff; border: 1.5px solid #ddd6fe; }
+  .agent-card.tester   { background: #f0fdf4; border: 1.5px solid #bbf7d0; }
+  .agent-card .agent-num {
+    font-size: 10px; font-weight: 800; letter-spacing: 0.1em;
+    padding: 3px 10px; border-radius: 100px;
+    display: inline-block; margin-bottom: 12px;
+  }
+  .analyst  .agent-num { background: #dbeafe; color: #1e40af; }
+  .engineer .agent-num { background: #ede9fe; color: #5b21b6; }
+  .tester   .agent-num { background: #dcfce7; color: #166534; }
+  .agent-card .agent-icon { font-size: 30px; margin-bottom: 8px; }
+  .agent-card h3 { font-size: 15px; font-weight: 800; margin-bottom: 6px; }
+  .analyst  h3 { color: #1e40af; }
+  .engineer h3 { color: #5b21b6; }
+  .tester   h3 { color: #166534; }
+  .agent-card p { font-size: 12px; line-height: 1.6; color: #475569; }
+  .harness-flow {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    background: #fff;
+    border: 1px solid #e2e8f0;
+    border-radius: 12px;
+    padding: 14px 20px;
+    font-size: 12.5px;
+    color: #64748b;
+    flex-wrap: wrap;
+    row-gap: 6px;
+  }
+  .harness-flow .hf-step {
+    font-weight: 700;
+    padding: 4px 12px;
+    border-radius: 8px;
+    white-space: nowrap;
+  }
+  .hf-analyst  { background: #dbeafe; color: #1e40af; }
+  .hf-engineer { background: #ede9fe; color: #5b21b6; }
+  .hf-tester   { background: #dcfce7; color: #166534; }
+  .hf-arrow    { color: #cbd5e1; font-size: 16px; }
+
+  /* ── 하네스 상세 ── */
+  .harness-detail {
+    margin: 24px 0 16px;
+    border: 1.5px solid #e2e8f0;
+    border-radius: 16px;
+    overflow: hidden;
+  }
+  .hd-row {
+    display: flex;
+    align-items: stretch;
+  }
+  .hd-badge {
+    width: 88px;
+    min-width: 88px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 18px 10px;
+    font-size: 9.5px;
+    font-weight: 900;
+    letter-spacing: 0.1em;
+    text-align: center;
+    gap: 6px;
+  }
+  .hd-badge .hd-icon { font-size: 22px; }
+  .analyst-row  .hd-badge { background: #eff6ff; color: #1e40af; border-right: 1.5px solid #bfdbfe; }
+  .engineer-row .hd-badge { background: #f5f3ff; color: #5b21b6; border-right: 1.5px solid #ddd6fe; }
+  .tester-row   .hd-badge { background: #f0fdf4; color: #166534; border-right: 1.5px solid #bbf7d0; }
+  .hd-body {
+    flex: 1;
+    padding: 16px 20px;
+  }
+  .hd-body h4 {
+    font-size: 13px;
+    font-weight: 800;
+    margin-bottom: 8px;
+  }
+  .analyst-row  .hd-body h4 { color: #1e40af; }
+  .engineer-row .hd-body h4 { color: #5b21b6; }
+  .tester-row   .hd-body h4 { color: #166534; }
+  .hd-list {
+    padding-left: 16px;
+    margin-bottom: 10px;
+  }
+  .hd-list li {
+    font-size: 12px;
+    color: #475569;
+    line-height: 1.7;
+  }
+  .hd-output {
+    display: inline-block;
+    font-family: 'Courier New', Courier, monospace;
+    font-size: 11px;
+    background: #f1f5f9;
+    color: #64748b;
+    padding: 3px 10px;
+    border-radius: 6px;
+    border: 1px solid #e2e8f0;
+  }
+  .hd-connector {
+    background: #f8faff;
+    border-top: 1px solid #e2e8f0;
+    border-bottom: 1px solid #e2e8f0;
+    text-align: center;
+    font-size: 10.5px;
+    color: #94a3b8;
+    padding: 5px;
+    font-family: 'Courier New', Courier, monospace;
+    letter-spacing: 0.04em;
+  }
+  .retry-note {
+    background: #fff7ed;
+    border: 1.5px dashed #fed7aa;
+    border-radius: 12px;
+    padding: 14px 18px;
+    font-size: 12px;
+    color: #9a3412;
+    line-height: 1.7;
+    margin-bottom: 20px;
+  }
+  .retry-note strong { color: #c2410c; }
+
+  /* ── 인프라 ── */
+  .infra-section { background: #f0f9ff; }
+  .infra-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 20px;
+    margin-bottom: 20px;
+  }
+  .infra-card {
+    background: #fff;
+    border-radius: 16px;
+    padding: 24px 22px;
+    border: 1.5px solid #bae6fd;
+    position: relative;
+    overflow: hidden;
+  }
+  .infra-card::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 4px;
+    background: linear-gradient(90deg, #0ea5e9, #38bdf8);
+  }
+  .infra-card .infra-badge {
+    font-size: 10px; font-weight: 800; letter-spacing: 0.1em;
+    padding: 3px 10px; border-radius: 100px;
+    display: inline-block; margin-bottom: 12px;
+    background: #e0f2fe; color: #0369a1;
+  }
+  .infra-card .infra-icon { font-size: 32px; margin-bottom: 10px; }
+  .infra-card h3 { font-size: 15px; font-weight: 800; color: #0369a1; margin-bottom: 6px; }
+  .infra-card p { font-size: 12.5px; line-height: 1.7; color: #475569; }
+  .infra-cron {
+    background: #0f172a;
+    border-radius: 10px;
+    padding: 14px 18px;
+    margin-top: 14px;
+    font-family: 'Courier New', Courier, monospace;
+    font-size: 11.5px;
+    color: #7dd3fc;
+    line-height: 1.8;
+  }
+  .infra-cron .cron-comment { color: #64748b; }
+  .infra-highlight {
+    background: linear-gradient(135deg, #0ea5e9 0%, #0284c7 100%);
+    border-radius: 12px;
+    padding: 18px 24px;
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    color: #fff;
+  }
+  .infra-highlight .ih-icon { font-size: 28px; flex-shrink: 0; }
+  .infra-highlight .ih-text { font-size: 13.5px; font-weight: 500; line-height: 1.6; }
+  .infra-highlight .ih-text strong { font-weight: 900; }
+
+  /* ── 보안 안내 ── */
+  .notice-band {
+    background: #1e293b;
+    padding: 24px 56px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 24px;
+  }
+  .notice-left {
+    display: flex;
+    align-items: flex-start;
+    gap: 14px;
+  }
+  .notice-icon {
+    font-size: 22px;
+    flex-shrink: 0;
+    margin-top: 1px;
+  }
+  .notice-text {
+    font-size: 13px;
+    color: rgba(255,255,255,0.75);
+    line-height: 1.65;
+  }
+  .notice-text strong {
+    color: #fff;
+    font-weight: 700;
+  }
+  .notice-readme {
+    flex-shrink: 0;
+    background: rgba(99,102,241,0.25);
+    border: 1px solid rgba(99,102,241,0.5);
+    border-radius: 10px;
+    padding: 10px 18px;
+    text-align: center;
+    text-decoration: none;
+  }
+  .notice-readme .readme-label {
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 0.1em;
+    color: #a5b4fc;
+    display: block;
+    margin-bottom: 3px;
+  }
+  .notice-readme .readme-name {
+    font-size: 13px;
+    font-weight: 800;
+    color: #c7d2fe;
+  }
+
+  /* ── 푸터 ── */
+  .footer {
+    background: #1e293b;
+    color: rgba(255,255,255,0.45);
+    text-align: center;
+    padding: 22px;
+    font-size: 12px;
+    letter-spacing: 0.03em;
+  }
+  .footer strong { color: rgba(255,255,255,0.7); }
+</style>
+</head>
+<body>
+<div class="card">
+
+  <!-- 헤더 -->
+  <div class="header">
+    <div class="header-icon">🤖</div>
+    <div class="header-badge">내부 자동화 도구 소개</div>
+    <h1>그룹웨어 <span>알림봇</span></h1>
+    <p>그룹웨어 새 게시물을 실시간으로 감지해<br>디스코드로 즉시 알림을 전달하는 자동화 스크립트</p>
+  </div>
+
+  <!-- 제작 배경 -->
+  <div class="section bg-section">
+    <div class="section-label">Why</div>
+    <div class="section-title">왜 만들었나요?</div>
+    <div class="bg-quote">
+      SI 프로젝트를 수행하다 보면 <strong>폐쇄망에서 근무하는 작업환경 때문에</strong>
+      그룹웨어 로그인이 뜸해지기 쉽습니다.<br>
+      그러다 <strong>공지사항·인사발령·경조사 같은 중요한 게시물을 뒤늦게 발견</strong>하는 일이
+      반복됐습니다.<br><br>
+      매번 직접 로그인하지 않아도 새 글이 올라오는 즉시 알림을 받을 수 있도록
+      이 봇을 만들게 됐습니다.
+    </div>
+  </div>
+
+  <!-- 동작 방식 -->
+  <div class="section">
+    <div class="section-label">How</div>
+    <div class="section-title">어떻게 동작하나요?</div>
+    <div class="flow">
+      <div class="flow-step">
+        <div class="flow-icon-wrap c-blue">⏰</div>
+        <p>5분마다<br>자동 실행</p>
+      </div>
+      <div class="flow-arrow">›</div>
+      <div class="flow-step">
+        <div class="flow-icon-wrap c-indigo">🔐</div>
+        <p>그룹웨어<br>SSO 로그인</p>
+      </div>
+      <div class="flow-arrow">›</div>
+      <div class="flow-step">
+        <div class="flow-icon-wrap c-purple">📋</div>
+        <p>게시판<br>스크래핑</p>
+      </div>
+      <div class="flow-arrow">›</div>
+      <div class="flow-step">
+        <div class="flow-icon-wrap c-orange">🔍</div>
+        <p>새 글 / 제목<br>변경 감지</p>
+      </div>
+      <div class="flow-arrow">›</div>
+      <div class="flow-step">
+        <div class="flow-icon-wrap c-green">📨</div>
+        <p>디스코드<br>즉시 알림</p>
+      </div>
+    </div>
+    <div class="extra-notes">
+      <div class="heartbeat-note">
+        <span class="hb-icon">💓</span>
+        <span><strong>Heartbeat 알림:</strong> 하루 동안 아무 알림도 없었을 경우, 오후 6시 이후 "✅ 정상 동작 중" 메시지를 1회 전송해 봇이 살아있음을 확인합니다.</span>
+      </div>
+      <div class="meal-note">
+        <span class="hb-icon">🍱</span>
+        <span><strong>식단 알림:</strong> 평일 오전 10시에 당일 구내식당 중식 메뉴를 별도로 전송합니다. 칼로리 정보도 함께 표시됩니다.</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- 모니터링 게시판 -->
+  <div class="section" style="background:#fafbff;">
+    <div class="section-label">Coverage</div>
+    <div class="section-title">모니터링하는 게시판</div>
+    <div class="boards">
+      <div class="board-item">
+        <div class="emoji">📌</div>
+        <p>공지사항</p>
+      </div>
+      <div class="board-item">
+        <div class="emoji">🎊</div>
+        <p>경조사</p>
+      </div>
+      <div class="board-item">
+        <div class="emoji">👥</div>
+        <p>인사발령</p>
+      </div>
+      <div class="board-item">
+        <div class="emoji">💼</div>
+        <p>NDS<br>수주정보</p>
+      </div>
+      <div class="board-item">
+        <div class="emoji">📚</div>
+        <p>교육·세미나<br>일정</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- 알림 채널 진화 -->
+  <div class="section notif-section">
+    <div class="section-label">Evolution</div>
+    <div class="section-title">알림 채널, 이렇게 바뀌었습니다</div>
+
+    <div class="channel-criteria">
+      <span class="crit-icon">🎯</span>
+      <span><strong>선정 기준:</strong> 별도 비용이 발생하지 않는 무료 채널 — 카카오톡 나와의채팅 · 디스코드 · 텔레그램을 검토했습니다.</span>
+    </div>
+
+    <div class="candidates">
+      <div class="candidate deprecated">
+        <div class="cand-icon">💬</div>
+        <div class="cand-body">
+          <div class="cand-name">카카오톡 나와의채팅</div>
+          <div class="cand-reason">API 연동은 가능하나 앱 알림이 기본값으로 꺼져 있어 중요 알림을 놓치는 문제 발생</div>
+          <span class="cand-badge">알림 미도달 → 전환</span>
+        </div>
+      </div>
+      <div class="candidate rejected">
+        <div class="cand-icon">✈️</div>
+        <div class="cand-body">
+          <div class="cand-name">텔레그램</div>
+          <div class="cand-reason">회사 네트워크에서 차단되어 사내 PC 환경에서 접속 불가</div>
+          <span class="cand-badge">회사 차단 → 제외</span>
+        </div>
+      </div>
+      <div class="candidate selected">
+        <div class="cand-icon">🎮</div>
+        <div class="cand-body">
+          <div class="cand-name">디스코드 웹훅</div>
+          <div class="cand-reason">별도 앱 설치 없이 웹훅 URL만으로 연동 가능, 모바일·데스크톱 푸시 알림 안정적</div>
+          <span class="cand-badge">✅ 최종 채택</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="notif-timeline">
+
+      <div class="notif-card kakao">
+        <div class="notif-step-badge">1단계 · 초기</div>
+        <div class="notif-icon">💬</div>
+        <h3>카카오톡 나와의채팅</h3>
+        <p>카카오 OAuth를 연동해 '나에게 보내기' API로 알림을 전송하는 방식을 선택했습니다.</p>
+        <div class="notif-problem">
+          ⚠️ 문제 발생 — '나와의채팅'은 앱 알림이 별도 설정 없이는 도착하지 않아,
+          정작 중요한 순간에 알림을 놓치는 상황이 반복됐습니다.
+        </div>
+      </div>
+
+      <div class="notif-arrow">
+        <div class="arr">→</div>
+        <div class="arr-label">채널 전환</div>
+      </div>
+
+      <div class="notif-card discord">
+        <div class="notif-step-badge">2단계 · 현재</div>
+        <div class="notif-icon">🎮</div>
+        <h3>디스코드 웹훅</h3>
+        <p>디스코드 서버에 전용 채널을 만들고 웹훅(Webhook)으로 알림을 전송하는 방식으로 전환했습니다.</p>
+        <div class="notif-solution">
+          ✅ 안정적으로 동작 중 — 모바일·데스크톱 모두 즉시 푸시 알림이 도착하며,
+          게시물 종류에 따라 색상 구분된 카드 형태로 표시됩니다.
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- 개발 하네스 -->
+  <div class="section harness-section">
+    <div class="section-label">Development</div>
+    <div class="section-title">AI 에이전트 팀으로 개발했습니다</div>
+    <p class="harness-intro">
+      이 봇은 <strong>Claude Code의 다중 에이전트 하네스</strong>를 구성해 개발했습니다.<br>
+      사람이 직접 코드를 작성하는 대신, 분석가·엔지니어·테스터 역할을 맡은 세 AI 에이전트가
+      파이프라인을 이루어 기능을 설계·구현·검증합니다.
+    </p>
+    <div class="agents">
+      <div class="agent-card analyst">
+        <div class="agent-num">STEP 1 · ANALYST</div>
+        <div class="agent-icon">🔍</div>
+        <h3>분석가 에이전트</h3>
+        <p>요구사항을 받아 코드베이스를 분석하고, 구현 스펙과 엣지 케이스를 문서로 정의합니다.</p>
+      </div>
+      <div class="agent-card engineer">
+        <div class="agent-num">STEP 2 · ENGINEER</div>
+        <div class="agent-icon">⚙️</div>
+        <h3>엔지니어 에이전트</h3>
+        <p>분석가가 작성한 스펙을 기반으로 Python 코드를 작성하고 파일을 수정합니다.</p>
+      </div>
+      <div class="agent-card tester">
+        <div class="agent-num">STEP 3 · TESTER</div>
+        <div class="agent-icon">✅</div>
+        <h3>테스터 에이전트</h3>
+        <p>변경 사항에 대한 단위 테스트를 작성하고 실행해 기능이 올바르게 동작하는지 검증합니다.</p>
+      </div>
+    </div>
+    <div class="harness-detail">
+      <div class="hd-row analyst-row">
+        <div class="hd-badge">
+          <div class="hd-icon">🔍</div>
+          ANALYST
+        </div>
+        <div class="hd-body">
+          <h4>분석가 — 요구사항 분석 &amp; 스펙 정의</h4>
+          <ul class="hd-list">
+            <li>코드베이스 전체를 탐색해 변경이 필요한 파일·함수를 특정</li>
+            <li>엣지 케이스, 상태 관리 방식, 하위 호환성 영향 범위 검토</li>
+            <li>엔지니어가 즉시 구현에 착수할 수 있는 스펙 문서 작성</li>
+          </ul>
+          <span class="hd-output">📄 _workspace/01_analyst_spec.md 작성 후 SendMessage</span>
+        </div>
+      </div>
+      <div class="hd-connector">↓ SendMessage → 엔지니어에게 스펙 전달</div>
+      <div class="hd-row engineer-row">
+        <div class="hd-badge">
+          <div class="hd-icon">⚙️</div>
+          ENGINEER
+        </div>
+        <div class="hd-body">
+          <h4>엔지니어 — Python 코드 구현</h4>
+          <ul class="hd-list">
+            <li>스펙 문서를 읽고 main.py · notifier.py 등 실제 파일 수정</li>
+            <li>상태 필드 추가, 로직 분기, 예외 처리 등 구현</li>
+            <li>변경 파일 목록과 설계 결정 사항을 구현 노트로 기록</li>
+          </ul>
+          <span class="hd-output">📄 _workspace/02_engineer_notes.md 작성 후 SendMessage</span>
+        </div>
+      </div>
+      <div class="hd-connector">↓ SendMessage → 테스터에게 검증 요청</div>
+      <div class="hd-row tester-row">
+        <div class="hd-badge">
+          <div class="hd-icon">✅</div>
+          TESTER
+        </div>
+        <div class="hd-body">
+          <h4>테스터 — 단위 테스트 작성 &amp; 실행</h4>
+          <ul class="hd-list">
+            <li>정상 흐름 / 경계 조건 / 예외 상황별 pytest 테스트 케이스 추가</li>
+            <li>pytest 실행 — 전체 15개 테스트 통과 여부 확인</li>
+            <li>실패 시 원인을 엔지니어에게 SendMessage로 전달, 수정 후 재검증</li>
+          </ul>
+          <span class="hd-output">📄 tests/test_main.py &nbsp;→&nbsp; pytest 실행 → 오케스트레이터에 결과 보고</span>
+        </div>
+      </div>
+    </div>
+    <div class="retry-note">
+      ⟳ <strong>자동 피드백 루프</strong> — 테스트 실패 시 테스터가 실패 원인을 엔지니어에게 SendMessage로 전달합니다.
+      엔지니어가 코드를 수정하면 테스터가 재검증하며, 최대 2회까지 자동으로 반복됩니다.
+      2회 후에도 해결되지 않으면 오케스트레이터(메인 에이전트)에게 에스컬레이션합니다.
+    </div>
+    <div class="harness-flow">
+      <span>개발 요청</span>
+      <span class="hf-arrow">›</span>
+      <span class="hf-step hf-analyst">분석가 · 스펙 작성</span>
+      <span class="hf-arrow">›</span>
+      <span class="hf-step hf-engineer">엔지니어 · 코드 구현</span>
+      <span class="hf-arrow">›</span>
+      <span class="hf-step hf-tester">테스터 · 검증</span>
+      <span class="hf-arrow">›</span>
+      <span>배포</span>
+    </div>
+  </div>
+
+  <!-- 인프라 -->
+  <div class="section infra-section">
+    <div class="section-label">Infrastructure</div>
+    <div class="section-title">어떻게 서비스하고 있나요?</div>
+    <div class="infra-grid">
+      <div class="infra-card">
+        <div class="infra-badge">CLOUD · OCI</div>
+        <div class="infra-icon">☁️</div>
+        <h3>Oracle Cloud 무료 VM</h3>
+        <p>
+          별도 비용 없이 <strong>OCI(Oracle Cloud Infrastructure) 무료 티어 VM</strong>을 생성해
+          24시간 상시 운영합니다.<br>
+          Always Free 혜택으로 서버비 0원에 안정적으로 운영 중입니다.
+        </p>
+      </div>
+      <div class="infra-card">
+        <div class="infra-badge">SCHEDULER · CRON</div>
+        <div class="infra-icon">⏰</div>
+        <h3>Linux Cron 자동 실행</h3>
+        <p>
+          crontab에 두 가지 스케줄을 등록해 완전 자동으로 실행합니다.
+        </p>
+        <div class="infra-cron">
+          <span class="cron-comment"># 새 게시물 알림 — 평일 08~20시, 5분마다</span><br>
+          */5 8-20 * * 1-5 &nbsp;python3 main.py<br>
+          <span class="cron-comment"># 식단 알림 — 평일 오전 10시</span><br>
+          0 10 * * 1-5 &nbsp;&nbsp;&nbsp;python3 main.py --meal
+        </div>
+      </div>
+    </div>
+    <div class="infra-highlight">
+      <div class="ih-icon">🚀</div>
+      <div class="ih-text">
+        <strong>무료로 24시간 운영 중</strong> — OCI Always Free VM + Linux Cron 조합으로
+        별도 서버 비용 없이 평일 업무 시간 내 5분 간격으로 그룹웨어를 모니터링합니다.
+      </div>
+    </div>
+  </div>
+
+  <!-- 보안 안내 -->
+  <div class="notice-band">
+    <div class="notice-left">
+      <div class="notice-icon">🔒</div>
+      <div class="notice-text">
+        <strong>보안 안내</strong><br>
+        알림봇은 게시물의 <strong>제목과 게시판 이름만</strong> 전송합니다.
+        게시물 본문·첨부파일 등 세부 내용은 전달하지 않습니다.<br>
+        환경 구성 및 실행 방법은 README.md 파일을 참고하세요.
+      </div>
+    </div>
+    <div class="notice-readme">
+      <span class="readme-label">참고 문서</span>
+      <span class="readme-name">📄 README.md</span>
+    </div>
+  </div>
+
+  <!-- 푸터 -->
+  <div class="footer">
+    <strong>그룹웨어 알림봇</strong> &nbsp;·&nbsp; Windows Task Scheduler (or Cron) 기반 &nbsp;·&nbsp; Python 3.11
+    &nbsp;·&nbsp; 문의: 김주관 (기술본부 Dev/Ops팀)
+  </div>
+
+</div>
+</body>
+</html>
