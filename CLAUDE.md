@@ -17,3 +17,14 @@ Key routing rules:
 - Save progress → invoke /context-save
 - Resume context → invoke /context-restore
 - Author a backlog-ready spec/issue → invoke /spec
+
+## 하네스: NSG Portal 개발
+
+**목표:** 그룹웨어 알림봇 개발 요청을 분석가·엔지니어·테스터 팀으로 자동 조율
+
+**트리거:** nsgportal 관련 개발 요청 (기능 추가, 버그 수정, 리팩토링, 테스트) 시 `nsgportal-dev` 스킬을 사용하라. 단순 질문은 직접 응답 가능.
+
+**변경 이력:**
+| 날짜 | 변경 내용 | 대상 | 사유 |
+|------|----------|------|------|
+| 2026-06-30 | 초기 구성 | 전체 | - |
