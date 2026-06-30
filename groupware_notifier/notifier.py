@@ -109,6 +109,7 @@ class DiscordNotifier:
     _COLORS = {
         '📬 새 게시물': 0x5865F2,   # 디스코드 블루
         '🍽️ 식단 알림':  0xF6A623,   # 오렌지
+        '💓 Heartbeat':  0x57F287,   # 초록
     }
     _DEFAULT_COLOR = 0x5865F2
 

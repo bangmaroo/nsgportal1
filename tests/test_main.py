@@ -174,11 +174,16 @@ def test_new_posts_sends_notifications(tmp_path):
     assert state['boards']['notice']['last_seen_id'] == 102
 
 
-# ── T3: 새 게시물 없음 → 조용히 종료 ─────────────────────────────────────────
+# ── T3: 새 게시물 없음 + 오늘 이미 heartbeat 전송 → 조용히 종료 ──────────────
 
 def test_no_new_posts_no_notification(tmp_path):
+    """오늘 이미 heartbeat를 보낸 경우 추가 알림 없음."""
+    from datetime import date
     state_path = tmp_path / 'state.json'
-    state_path.write_text(json.dumps({'boards': {'notice': {'last_seen_id': 102}}}))
+    state_path.write_text(json.dumps({
+        'boards': {'notice': {'last_seen_id': 102}},
+        'heartbeat_last_sent': date.today().isoformat(),
+    }))
 
     config = {
         'groupware_url': 'https://gw.example.com', 'login_url': 'https://gw.example.com/login',
@@ -196,6 +201,135 @@ def test_no_new_posts_no_notification(tmp_path):
     mock_scraper.get_posts.return_value = [
         {'id': 102, 'title': '기존 공지'},
     ]
+    mock_notifier = MagicMock()
+
+    with (
+        patch('groupware_notifier.main.STATE_PATH', state_path),
+        patch('groupware_notifier.main._load_json', side_effect=lambda p, n: config if 'config' in str(p) else secrets),
+        patch('groupware_notifier.main.GroupwareScraper', return_value=mock_scraper),
+        patch('groupware_notifier.main.build_notifier', return_value=mock_notifier),
+    ):
+        run()
+
+    mock_notifier.send.assert_not_called()
+
+
+# ── T5: Heartbeat ─────────────────────────────────────────────────────────────
+
+def _base_config_and_secrets():
+    config = {
+        'groupware_url': 'https://gw.example.com', 'login_url': 'https://gw.example.com/login',
+        'board_ids': ['notice'], 'post_selector': 'tr[data-id]',
+        'post_id_attr': 'data-id', 'post_title_selector': 'td.title a',
+    }
+    secrets = {
+        'groupware_username': 'u', 'groupware_password': 'p',
+        'kakao_rest_api_key': 'key', 'kakao_client_secret': '',
+        'access_token': 'token', 'refresh_token': 'refresh',
+        'expires_at': int(time.time()) + 3600,
+    }
+    return config, secrets
+
+
+def test_heartbeat_sent_when_no_new_posts_and_not_sent_today(tmp_path):
+    """새 게시물 없고 오늘 heartbeat 미전송 → heartbeat 알림 전송."""
+    from datetime import date
+    state_path = tmp_path / 'state.json'
+    state_path.write_text(json.dumps({
+        'boards': {'notice': {'last_seen_id': 102}},
+        'heartbeat_last_sent': '2000-01-01',  # 과거 날짜
+    }))
+
+    config, secrets = _base_config_and_secrets()
+    mock_scraper = MagicMock()
+    mock_scraper.get_posts.return_value = [{'id': 102, 'title': '기존 공지'}]
+    mock_notifier = MagicMock()
+
+    with (
+        patch('groupware_notifier.main.STATE_PATH', state_path),
+        patch('groupware_notifier.main._load_json', side_effect=lambda p, n: config if 'config' in str(p) else secrets),
+        patch('groupware_notifier.main.GroupwareScraper', return_value=mock_scraper),
+        patch('groupware_notifier.main.build_notifier', return_value=mock_notifier),
+    ):
+        run()
+
+    mock_notifier.send.assert_called_once()
+    call_kwargs = mock_notifier.send.call_args.kwargs
+    assert call_kwargs['header'] == '💓 Heartbeat'
+    assert call_kwargs['title'] == '✅ 정상 동작 중'
+
+    # heartbeat_last_sent가 오늘로 갱신됐는지 확인
+    state = json.loads(state_path.read_text(encoding='utf-8'))
+    assert state['heartbeat_last_sent'] == date.today().isoformat()
+
+
+def test_heartbeat_not_sent_when_already_sent_today(tmp_path):
+    """오늘 이미 heartbeat를 전송한 경우 중복 전송 안 함."""
+    from datetime import date
+    state_path = tmp_path / 'state.json'
+    state_path.write_text(json.dumps({
+        'boards': {'notice': {'last_seen_id': 102}},
+        'heartbeat_last_sent': date.today().isoformat(),
+    }))
+
+    config, secrets = _base_config_and_secrets()
+    mock_scraper = MagicMock()
+    mock_scraper.get_posts.return_value = [{'id': 102, 'title': '기존 공지'}]
+    mock_notifier = MagicMock()
+
+    with (
+        patch('groupware_notifier.main.STATE_PATH', state_path),
+        patch('groupware_notifier.main._load_json', side_effect=lambda p, n: config if 'config' in str(p) else secrets),
+        patch('groupware_notifier.main.GroupwareScraper', return_value=mock_scraper),
+        patch('groupware_notifier.main.build_notifier', return_value=mock_notifier),
+    ):
+        run()
+
+    mock_notifier.send.assert_not_called()
+
+
+def test_heartbeat_not_sent_when_new_posts_exist(tmp_path):
+    """새 게시물 알림이 있으면 heartbeat 대신 게시물 알림만 전송."""
+    from datetime import date
+    state_path = tmp_path / 'state.json'
+    state_path.write_text(json.dumps({
+        'boards': {'notice': {'last_seen_id': 100}},
+        'heartbeat_last_sent': '2000-01-01',
+    }))
+
+    config, secrets = _base_config_and_secrets()
+    mock_scraper = MagicMock()
+    mock_scraper.get_posts.return_value = [
+        {'id': 101, 'title': '새 공지'},
+        {'id': 100, 'title': '기존 공지'},
+    ]
+    mock_notifier = MagicMock()
+
+    with (
+        patch('groupware_notifier.main.STATE_PATH', state_path),
+        patch('groupware_notifier.main._load_json', side_effect=lambda p, n: config if 'config' in str(p) else secrets),
+        patch('groupware_notifier.main.GroupwareScraper', return_value=mock_scraper),
+        patch('groupware_notifier.main.build_notifier', return_value=mock_notifier),
+    ):
+        run()
+
+    # 게시물 알림 1회만 전송, heartbeat 없음
+    assert mock_notifier.send.call_count == 1
+    assert mock_notifier.send.call_args.kwargs['header'] == '📬 새 게시물'
+
+    # heartbeat_last_sent가 오늘로 갱신됐는지 확인 (게시물 알림이 생존 신호 역할)
+    state = json.loads(state_path.read_text(encoding='utf-8'))
+    assert state['heartbeat_last_sent'] == date.today().isoformat()
+
+
+def test_heartbeat_not_sent_on_first_run(tmp_path):
+    """첫 실행(기준점 설정 단계)에서는 heartbeat 미전송."""
+    state_path = tmp_path / 'state.json'
+    # state.json 없음 = 첫 실행
+
+    config, secrets = _base_config_and_secrets()
+    mock_scraper = MagicMock()
+    mock_scraper.get_posts.return_value = [{'id': 100, 'title': '기존 공지'}]
     mock_notifier = MagicMock()
 
     with (
