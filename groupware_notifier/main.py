@@ -18,7 +18,7 @@ import os
 import sys
 import tempfile
 import time
-from datetime import date
+from datetime import date, datetime
 from logging.handlers import RotatingFileHandler
 from pathlib import Path
 
@@ -231,8 +231,8 @@ def run() -> None:
         if any_new_posts:
             # 새 게시물 알림이 오늘의 생존 신호 역할을 하므로 heartbeat 전송 불필요
             new_state['heartbeat_last_sent'] = today_str
-        elif state.get('heartbeat_last_sent') != today_str:
-            # 오늘 첫 실행에서 새 게시물이 없으면 heartbeat 전송
+        elif state.get('heartbeat_last_sent') != today_str and datetime.now().hour >= 18:
+            # 오후 6시 이후 실행에서 하루 동안 알림이 없었으면 heartbeat 전송
             try:
                 notifier.send(
                     title='✅ 정상 동작 중',
