@@ -1,0 +1,34 @@
+{
+  "_comment": "이 파일을 복사해 config.json으로 저장한 후 환경에 맞게 수정하세요.",
+
+  "notifiers": ["discord"],
+
+  "groupware_url": "http://www.example-groupware.com/",
+  "entry_url": "http://www.example-groupware.com/ekp/ssoLogin.jsp",
+  "company_id": "CD",
+  "company_field": "cmpId",
+  "login_url": "https://sso.example-groupware.com:8888/siteminderagent/forms/login.fcc",
+  "ssl_verify": false,
+
+  "dining_url": "http://www.example-groupware.com/ekp/diningHall/diningHall.do?cmd=diningHallList&diningHall.diningHallCode=COMPANY&diningHall.diningHallName=",
+
+  "board_url_template": "http://www.example-groupware.com/ekp/board/atcl.do?cmd=listAtcl&atclReq.subKind=A&atclReq.searchPutupTarget=C&atclReq.brdId={board_id}",
+
+  "board_ids": [
+    "BB000000000000001",
+    "BB000000000000002"
+  ],
+
+  "board_names": {
+    "BB000000000000001": "공지사항",
+    "BB000000000000002": "경조사"
+  },
+
+  "board_url_overrides": {
+    "BB000000000000002": "http://www.example-groupware.com/ekp/board/atcl.do?cmd=listAtcl&atclReq.brdId=BB000000000000002&atclReq.readType=&atclReq.atclNo=&grpId=&atclReq.listType=&fwd=Y&atclReq.searchPutupTarget=C"
+  },
+
+  "post_selector": "tr",
+  "post_id_pattern": "fnViewAtcl\\('(\\d+)'",
+  "post_title_selector": "a[href*='fnViewAtcl']"
+}
